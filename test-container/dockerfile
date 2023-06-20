@@ -1,0 +1,8 @@
+# Verwenden Sie ein leichtgewichtiges Basis-Image mit Bash
+FROM alpine:latest
+
+# Kopieren Sie das Skript in das Image
+COPY show_time.sh /show_time.sh
+
+# Führen Sie das Skript aus, wenn der Container startet
+CMD ["/bin/sh", "/show_time.sh"]
