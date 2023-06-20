@@ -1,77 +1,85 @@
-import subprocess
-import signal
-import time
+import threading
 import sys
-import requests
 import os
 
+from flask import Flask, request
+from werkzeug.utils import secure_filename
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from syscall import Syscall
-from astide import ASTIDE
 
-def handle_interrupt(signal, frame):
-    print("ctrl + c detected -> ending")
-    observer.stop()
-    observer.join()
-    exit(0)
+import ids_helper as ids_helper
+from ids_file_observer import ParserFileHandler
+from testcases import TestcaseManager, Testcase
 
-# Handles file observer and starts parsing the files
-class ParserFileHandler(FileSystemEventHandler):
-    def __init__(self):        
-        self._files = set()
-        self._stide = ASTIDE()        
+# some global variables:
+observer = Observer()
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = os.getcwd() + "/uploads/"
+testcases = TestcaseManager()
 
-    def on_modified(self, event):        
-        filename = os.path.basename(event.src_path)
-        if not event.is_directory and filename.startswith('trace.scap') and filename[10:].isdigit():            
-            if event.src_path not in self._files:
-                print(f'waiting for file: {event.src_path} ... ',end='', flush=True)
-                self._files.add(event.src_path) # remove this entry when detection is done on it
-                self.wait_and_parse(event.src_path)
 
-    def wait_and_parse(self, file_path):
-        size_prev = -1
-        while size_prev != os.path.getsize(file_path):
-            size_prev = os.path.getsize(file_path)
-            time.sleep(1)  # wait a second and check the size again
-        self.parse_file(file_path)
 
-    def parse_file(self, file_path):
-        print(f"parsing file: {file_path} ...")
-        self._parse_sysdig_output(file_path)
-        self.delete_file(file_path)
+
+# for uploading the files to the ids
+@app.route('/ids/upload_scap', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return "no file in request", 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return 'no file_name in request', 400
+
+    filename = secure_filename(file.filename)
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    return 'file sucessfull uploaded!', 200
+
+@app.route('/ids/start_testcase', methods=['POST'])
+def start_testcase():
+    # accepts requests with json data like:
+    # {
+    # "testcase_name": "t-007",
+    # "timestamp_unix_in_ns": 1687256995500155624
+    # }
+    result = testcases.add_testcase_from_json(request.json)
+    print(request.json)
+    if result:
+        return f"testcase accepted", 200
+    else:  
+        return f"testcase already exists", 400
+
+@app.route('/ids/stop_testcase', methods=['POST'])
+def stop_testcase():
+    # accepts requests with json data like:
+    # {
+    # "testcase_name": "t-007",
+    # "timestamp_unix_in_ns": 1687256995500155625
+    # }
+
+    result = testcases.end_testcase_from_json(request.json)
+    print(request.json)
+    if result:
+        return "testcase accepted", 200
+    else:
+        return "testcase not found", 400
+
+
+
+# for the file observer / ids 
+def run_observer():
+    # ParserFileHandler
+    path = os.getcwd() + "/uploads/"
+    print(f"observing files in: {path}")
+    event_handler = ParserFileHandler(testcases)
+    observer.schedule(event_handler, path, recursive=False)
+    observer.start()
     
-    def delete_file(self, file_path):
-        try:
-            os.remove(file_path)
-            print(f"done and sucessfully deleted.")
-        except OSError as e:
-            print(f"Error trying do delete: {file_path} : {e.strerror}")
-
-    def _parse_sysdig_output(self, file_path):
-        max_score = 0
-        with subprocess.Popen(["sysdig", "-r", file_path, "-p", "%evt.rawtime %proc.name %thread.tid %evt.dir %syscall.type %evt.args"], stdout=subprocess.PIPE) as proc:
-            for line in proc.stdout:
-                # line enthält eine Zeile der Ausgabe
-                line = line.decode('utf-8').strip()  # decode and remove leading and trailing whitespace
-                # print(line)
-                current_syscall = Syscall(line)
-                if self._stide.mode == "training":
-                    self._stide.train_on(current_syscall)
-                else:
-                    current_score = self._stide.get_score(current_syscall)
-                    if current_score is not None:
-                        max_score = max(current_score, max_score)
-        if self._stide.mode == "training":
-            self._stide.fit()
-        if self._stide.mode == "detection":
-            print(f"max anomaly score for the last file: {max_score}")
 
 ###########################################################################
 # START
 ###########################################################################
 if __name__ == "__main__":
+    
+
     # check for command line arguments
     # first argument: ids-mode (training/detection) 
     #   training  -> do training
@@ -86,18 +94,14 @@ if __name__ == "__main__":
     else:
         exit()
 
-    # ParserFileHandler
-    path = os.getcwd() + "/uploads/"
-    print(f"observing files in: {path}")
-    event_handler = ParserFileHandler()
-    observer = Observer()
-    observer.schedule(event_handler, path, recursive=False)
-    observer.start()
+    # run the file observer part
+    t = threading.Thread(target=run_observer)
+    t.start()
 
-    signal.signal(signal.SIGINT, handle_interrupt)
+    # run server for upload handling
+    app.run(port=80, debug=False)
+    print("flask server ended...")
 
-    try:
-        while True:
-            time.sleep(1)
-    except: 
-        pass
+    # at the end, close the other threads
+    ids_helper.close_thread(t,"observer helper")
+    ids_helper.close_thread(observer, "observer")

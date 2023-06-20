@@ -38,4 +38,4 @@
    - move to ids directory
    - install python dependencies: `sudo pip install -r requirements.txt`
    - run the ids_receiver script:`sudo python3 ids_receiver.py`
-   - run the ids script: `python3 ids.py training`
+   - in a new terminal, run the ids script: `python3 ids.py training`
