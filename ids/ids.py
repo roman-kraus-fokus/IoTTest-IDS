@@ -38,10 +38,9 @@ def start_testcase():
     # accepts requests with json data like:
     # {
     # "testcase_name": "t-007",
-    # "timestamp_unix_in_ns": 1687256995500155624
     # }
     result = testcases.add_testcase_from_json(request.json)
-    print(request.json)
+    # print(request.json)
     if result:
         return f"testcase accepted", 200
     else:  
@@ -52,11 +51,10 @@ def stop_testcase():
     # accepts requests with json data like:
     # {
     # "testcase_name": "t-007",
-    # "timestamp_unix_in_ns": 1687256995500155625
     # }
 
     result = testcases.end_testcase_from_json(request.json)
-    print(request.json)
+    # print(request.json)
     if result:
         return "testcase accepted", 200
     else:
@@ -68,7 +66,7 @@ def stop_testcase():
 def run_observer():
     # ParserFileHandler
     path = os.getcwd() + "/uploads/"
-    print(f"observing files in: {path}")
+    print(f"[IDS] observing files in: {path}")
     event_handler = ParserFileHandler(testcases)
     observer.schedule(event_handler, path, recursive=False)
     observer.start()
@@ -100,7 +98,7 @@ if __name__ == "__main__":
 
     # run server for upload handling
     app.run(port=80, debug=False)
-    print("flask server ended...")
+    print("[IDS] flask server ended...")
 
     # at the end, close the other threads
     ids_helper.close_thread(t,"observer helper")

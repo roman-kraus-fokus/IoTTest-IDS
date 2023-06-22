@@ -1,13 +1,20 @@
 import requests
 import time 
+import sys
 
-url = 'http://localhost:80/ids/start_testcase'
-data = {
-    'testcase_name': '001',
-    'timestamp_unix_in_ns': time.time_ns()
-}
+if __name__ == "__main__":
+    if len(sys.argv) == 3:
+        mode = sys.argv[1] 
+        testcase_name = sys.argv[2]
 
-response = requests.post(url, json=data)
+        url = f"http://localhost:80/ids/{mode}_testcase"
+        data = {
+            'testcase_name': testcase_name
+        }
 
-print(response.status_code)
-print(response.text)
+        response = requests.post(url, json=data)
+
+        print(response.status_code)
+        print(response.text)
+    else:
+        print("needed arguments: [start|stop] testcase_name")

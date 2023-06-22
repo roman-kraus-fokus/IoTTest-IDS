@@ -77,15 +77,15 @@ class ASTIDE():
     # Method to finalize the training (currently prints the current size of the training set)
     def fit(self):        
         # print(self._normal_database)
-        print(f"astide.seen_syscalls in training: {self._seen_training_syscalls}")
-        print(f"astide.seen_ngrams in training  : {self._seen_training_ngrams}")
-        print(f"astide.train_set                : {len(self._normal_database)}")
+        print(f"[ASTIDE] astide.seen_syscalls in training: {self._seen_training_syscalls}")
+        print(f"[ASTIDE] astide.seen_ngrams in training  : {self._seen_training_ngrams}")
+        print(f"[ASTIDE] astide.train_set                : {len(self._normal_database)}")
         
         dt = self._early_stopping_last_seen_ts - self._early_stopping_last_modification_ts
-        print(f"time since last model change: {dt} seconds ")
+        print(f"[ASTIDE] time since last model change: {dt} seconds ")
         if dt >= self._early_stopping_seconds:
             # training done...
-            print("training done -> switch to detection")
+            print("[ASTIDE] training done -> switch to detection")
             self.mode = "detection"
 
     # Helper function to determine if a given ngram is a mismatch
