@@ -15,7 +15,7 @@ observer = Observer()
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.getcwd() + "/uploads/"
 testcases = TestcaseManager()
-
+current_generation = None
 
 
 
@@ -60,6 +60,30 @@ def stop_testcase():
     else:
         return "testcase not found", 400
 
+@app.route('/ids/start_generation', methods=['POST'])
+def start_generation():
+    # accepts requests with json data like:
+    # {
+    # "generation_name": "g-001",
+    # }
+    current_generation = request.json["generation_name"]
+    if current_generation:
+        return f"generation accepted", 200
+    else:  
+        return f"no name for generation given", 400
+
+@app.route('/ids/stop_generation', methods=['POST'])
+def stop_generation():
+    # accepts requests with json data like:
+    # {
+    # "generation_name": "g-001",
+    # }
+    if request.json["generation_name"] and request.json["generation_name"] == current_generation:
+        evaluate_generation()
+        return f"generation ended and data send", 200
+    else:  
+        return f"no name for generation given or the given generation wasnt active", 400
+
 
 
 # for the file observer / ids 
@@ -71,6 +95,18 @@ def run_observer():
     observer.schedule(event_handler, path, recursive=False)
     observer.start()
     
+
+def evaluate_generation():
+    # evaluate the current generation
+    result_data = {}
+    result_data["generation"] = current_generation
+    result_data["testcases"] = []
+    for testcase in testcases._testcases.values():
+        # evaluate the testcase
+        result_data["testcases"].append({"testcase":testcase._name, "anomaly-score-max":testcase._max_score})
+    # send the results to the server
+    print(result_data)
+
 
 ###########################################################################
 # START
