@@ -37,5 +37,4 @@
    - install sysdig into the ids machine, see: https://github.com/draios/sysdig/wiki/How-to-Install-Sysdig-for-Linux
    - move to ids directory
    - install python dependencies: `sudo pip install -r requirements.txt`
-   - run the ids_receiver script:`sudo python3 ids_receiver.py`
-   - in a new terminal, run the ids script: `python3 ids.py training`
+      - in a new terminal, run the ids script: `python3 ids.py training`
