@@ -1,6 +1,7 @@
 import threading
 import sys
 import os
+import requests
 
 from flask import Flask, request
 from werkzeug.utils import secure_filename
@@ -14,9 +15,11 @@ from testcases import TestcaseManager, Testcase
 observer = Observer()
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.getcwd() + "/uploads/"
+
+# these three are used as global variables across the whole application (also in flask threads)
 testcases = TestcaseManager()
 current_generation = None
-
+fuzzino_endpoint = None
 
 
 # for uploading the files to the ids
@@ -39,6 +42,8 @@ def start_testcase():
     # {
     # "testcase_name": "t-007",
     # }
+    global testcases
+
     result = testcases.add_testcase_from_json(request.json)
     # print(request.json)
     if result:
@@ -52,6 +57,7 @@ def stop_testcase():
     # {
     # "testcase_name": "t-007",
     # }
+    global testcases
 
     result = testcases.end_testcase_from_json(request.json)
     # print(request.json)
@@ -66,11 +72,17 @@ def start_generation():
     # {
     # "generation_name": "g-001",
     # }
-    current_generation = request.json["generation_name"]
-    if current_generation:
-        return f"generation accepted", 200
-    else:  
-        return f"no name for generation given", 400
+    global current_generation
+
+    if current_generation is None:
+        current_generation = request.json["generation_name"]
+        if current_generation:
+            return f"generation \"{current_generation}\" accepted", 200
+        else:  
+            return f"no name for generation given", 400
+    else:
+        return f"generation \"{current_generation}\" already running", 400
+    
 
 @app.route('/ids/stop_generation', methods=['POST'])
 def stop_generation():
@@ -78,6 +90,8 @@ def stop_generation():
     # {
     # "generation_name": "g-001",
     # }
+    global current_generation
+
     if request.json["generation_name"] and request.json["generation_name"] == current_generation:
         evaluate_generation()
         return f"generation ended and data send", 200
@@ -97,6 +111,14 @@ def run_observer():
     
 
 def evaluate_generation():
+    ## send the generation results to the fuzzino server
+    ## format json, example: {'generation': 'G1', 'testcases': [{'testcase': 'T001', 'anomaly-score-max': 0}]}
+
+
+    global current_generation
+    global testcases
+    global fuzzino_endpoint
+
     # evaluate the current generation
     result_data = {}
     result_data["generation"] = current_generation
@@ -105,7 +127,19 @@ def evaluate_generation():
         # evaluate the testcase
         result_data["testcases"].append({"testcase":testcase._name, "anomaly-score-max":testcase._max_score})
     # send the results to the server
+    print(f"sending results to {fuzzino_endpoint}")
+    print(f"data send: ")
+    print("---------------------")
     print(result_data)
+    print("---------------------")
+    
+    try:
+        response = requests.post(fuzzino_endpoint, json=result_data)
+        response.raise_for_status()
+        print("fuzzino response code: " + response.status_code)
+        print("fuzzino response text: " + response.text)
+    except requests.exceptions.RequestException as e:
+        print(f"error: {e}")
 
 
 ###########################################################################
@@ -121,11 +155,13 @@ if __name__ == "__main__":
     # second argument: path to ids-model-file
     #   in training:  save model to file
     #   in detection: load model from file
+    # third argument: path to fuzzino-endpoint
 
     # Überprüfen Sie, ob Argumente übergeben wurden
-    if len(sys.argv) > 1:        
-        pass
+    if len(sys.argv) == 4:
+        fuzzino_endpoint = sys.argv[3]
     else:
+        print("needed arguments: [training|detection] path_to_model_file path_to_fuzzino_endpoint")
         exit()
 
     # run the file observer part
