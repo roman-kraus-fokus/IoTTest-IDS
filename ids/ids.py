@@ -155,13 +155,17 @@ if __name__ == "__main__":
     # second argument: path to ids-model-file
     #   in training:  save model to file
     #   in detection: load model from file
-    # third argument: path to fuzzino-endpoint
+    # third argument: hostname to listen or None
+    # fourth argument: port to listen or None
+    # fifth argument: fuzzino-endpoint
 
     # Überprüfen Sie, ob Argumente übergeben wurden
-    if len(sys.argv) == 4:
-        fuzzino_endpoint = sys.argv[3]
+    if len(sys.argv) == 6:
+        hostname_to_listen = sys.argv[3]
+        port_to_listen = sys.argv[4]        
+        fuzzino_endpoint = sys.argv[5]
     else:
-        print("needed arguments: [training|detection] path_to_model_file path_to_fuzzino_endpoint")
+        print("needed arguments: [training|detection] path_to_model_file hostname port fuzzino_endpoint")
         exit()
 
     # run the file observer part
@@ -169,7 +173,7 @@ if __name__ == "__main__":
     t.start()
 
     # run server for upload handling
-    app.run(port=80, debug=False)
+    app.run(host=hostname_to_listen, port=port_to_listen, debug=False)
     print("[IDS] flask server ended...")
 
     # at the end, close the other threads

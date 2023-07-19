@@ -36,14 +36,15 @@
    - move to agent directory
    - install python dependencies: `sudo pip install -r requirements.txt`
    - start the agent script `sudo python3 agent.py target_container_name endpoint`
-     - example: `sudo python3 agent.py happy_agnesi http://127.0.0.1:80/ids/upload_scap`
+     - example: `sudo python3 agent.py flamboyant_leavitt http://127.0.0.1:80/ids/upload_scap`
 
 ## IDS
    - install sysdig into the ids machine, see: https://github.com/draios/sysdig/wiki/How-to-Install-Sysdig-for-Linux
    - move to ids directory
    - install python dependencies: `sudo pip install -r requirements.txt`
-      - run the ids script: `sudo python3 ids.py [training|detection] path_to_model fuzzino_endpoint`
-        - example: `sudo python3 ids.py training ./model.dat http://127.0.0.1:8081/fz/scores`
+      - run the ids script: `sudo python3 ids.py [training|detection] path_to_model hostname port fuzzino_endpoint`
+        - hostname and port to listen on for incoming scap file of the agent
+        - example: `sudo python3 ids.py training ./model.dat 127.0.0.1 80 http://127.0.0.1:8081/fz/scores`
 
 # Rest Enpoints and Communication Information
 
