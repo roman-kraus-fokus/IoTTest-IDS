@@ -1,0 +1,1 @@
+Added so that git creates this folder automatically. This is where the scap files are temporary stored.
