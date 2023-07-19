@@ -20,6 +20,8 @@ app.config['UPLOAD_FOLDER'] = os.getcwd() + "/uploads/"
 testcases = TestcaseManager()
 current_generation = None
 fuzzino_endpoint = None
+mode = None
+path_to_model_file = None
 
 
 # for uploading the files to the ids
@@ -101,11 +103,14 @@ def stop_generation():
 
 
 # for the file observer / ids 
-def run_observer():
+def run_observer():    
     # ParserFileHandler
+    global mode
+    global path_to_model_file
+
     path = os.getcwd() + "/uploads/"
     print(f"[IDS] observing files in: {path}")
-    event_handler = ParserFileHandler(testcases)
+    event_handler = ParserFileHandler(testcases, mode, path_to_model_file)
     observer.schedule(event_handler, path, recursive=False)
     observer.start()
     
@@ -127,27 +132,25 @@ def evaluate_generation():
         # evaluate the testcase
         result_data["testcases"].append({"testcase":testcase._name, "anomaly-score-max":testcase._max_score})
     # send the results to the server
-    print(f"sending results to {fuzzino_endpoint}")
-    print(f"data send: ")
-    print("---------------------")
-    print(result_data)
-    print("---------------------")
+    print(f"[IDS] sending results to {fuzzino_endpoint}")
+    print(f"[IDS] data send: ")
+    print("[IDS] ---------------------")
+    print(f"[IDS] {result_data}")
+    print("[IDS] ---------------------")
     
     try:
         response = requests.post(fuzzino_endpoint, json=result_data)
         response.raise_for_status()
-        print("fuzzino response code: " + response.status_code)
-        print("fuzzino response text: " + response.text)
+        print("[IDS] fuzzino response code: " + response.status_code)
+        print("[IDS] fuzzino response text: " + response.text)
     except requests.exceptions.RequestException as e:
-        print(f"error: {e}")
+        print(f"[IDS] error: {e}")
 
 
 ###########################################################################
 # START
 ###########################################################################
 if __name__ == "__main__":
-    
-
     # check for command line arguments
     # first argument: ids-mode (training/detection) 
     #   training  -> do training
@@ -159,13 +162,20 @@ if __name__ == "__main__":
     # fourth argument: port to listen or None
     # fifth argument: fuzzino-endpoint
 
-    # Überprüfen Sie, ob Argumente übergeben wurden
+    # check for arguments
+    needed_arguments = "needed arguments: [training|detection] path_to_model_file hostname port fuzzino_endpoint"
     if len(sys.argv) == 6:
+        mode = sys.argv[1]
+        if mode != "training" and mode != "detection":
+            print("[IDS] mode has to be \"training\" or \"detection\"")
+            print(needed_arguments)
+            exit()
+        path_to_model_file = sys.argv[2]
         hostname_to_listen = sys.argv[3]
         port_to_listen = sys.argv[4]        
         fuzzino_endpoint = sys.argv[5]
     else:
-        print("needed arguments: [training|detection] path_to_model_file hostname port fuzzino_endpoint")
+        print(needed_arguments)
         exit()
 
     # run the file observer part

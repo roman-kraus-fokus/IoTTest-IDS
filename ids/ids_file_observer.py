@@ -9,9 +9,9 @@ from astide import ASTIDE
 
 # Handles file observer and starts parsing the files
 class ParserFileHandler(FileSystemEventHandler):
-    def __init__(self, testcase_manager):        
+    def __init__(self, testcase_manager, mode, path_to_model_file):        
         self._files = set()
-        self._stide = ASTIDE()
+        self._stide = ASTIDE(mode=mode, model_file=path_to_model_file)
         self._testcase_manager = testcase_manager
 
     def on_modified(self, event):        

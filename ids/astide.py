@@ -1,5 +1,6 @@
 from collections import deque
 import time
+import json
 
 from syscall import Syscall
 from angram import ANgram
@@ -19,7 +20,7 @@ def name_ret(syscall: Syscall):
 
 class ASTIDE():
     # Initialize ASTIDE with given number of ngrams, window size, and early stopping time
-    def __init__(self, n=5, w=500, es_training_seconds=30, syscall_mapper=name):
+    def __init__(self, mode="training", n=5, w=500, es_training_seconds=30, syscall_mapper=name, model_file="models/model.json"):
 
         # Set the ngram number
         self._n = n
@@ -29,7 +30,10 @@ class ASTIDE():
         self._syscall_mapper = syscall_mapper
 
         # current operating mode
-        self.mode = "training"
+        self.mode = mode
+
+        # model file
+        self._model_file = model_file
         
         # Set the training syscall counter and ngram counter
         self._seen_training_syscalls = 0
@@ -50,6 +54,12 @@ class ASTIDE():
 
         # Initialize an ngram builder with a specific ngram number
         self._ngram_builder = ANgram(n)
+
+        if self.mode == "detection":
+            print(f"[ASTIDE] started in detection mode...")
+            self.from_json_file(self._model_file)
+        else:
+            print(f"[ASTIDE] started in training mode...")
 
     # Method to train on a given syscall, generating unique ngrams and storing them in the normal_database set
     def train_on(self, syscall: Syscall):
@@ -87,6 +97,7 @@ class ASTIDE():
             # training done...
             print("[ASTIDE] training done -> switch to detection")
             self.mode = "detection"
+            self.to_json_file(self._model_file)
 
     # Helper function to determine if a given ngram is a mismatch
     def _is_mismatch(self, ngram: tuple):
@@ -126,3 +137,25 @@ class ASTIDE():
         
         # If no ngram could be generated or the window is not full, return None
         return None
+    
+    def to_json_file(self, file_name):
+        """
+        saves the current model to a json file
+        """
+        model = {}
+        model["normal_database"] = list(self._normal_database)
+        with open(file_name, 'w') as outfile:
+            json.dump(model, outfile, indent=4)
+            print(f"[ASTIDE] model saved to {file_name}")
+
+    def from_json_file(self, file_name):
+        """
+        loads a model from a json file
+        """
+        with open(file_name) as json_file:
+            model = json.load(json_file)            
+            self._normal_database = set()
+            for element in model["normal_database"]:
+                self._normal_database.add(tuple(element))             
+            print(f"[ASTIDE] model loaded from {file_name}")
+            print(f"[ASTIDE] normal db size: {len(self._normal_database)}")
