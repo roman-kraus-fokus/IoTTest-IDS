@@ -20,7 +20,7 @@ def name_ret(syscall: Syscall):
 
 class ASTIDE():
     # Initialize ASTIDE with given number of ngrams, window size, and early stopping time
-    def __init__(self, mode="training", n=5, w=500, es_training_seconds=30, syscall_mapper=name, model_file="models/model.json"):
+    def __init__(self, mode="detection", n=5, w=500, es_training_seconds=600, syscall_mapper=name, model_file="models/mosquitto_default.json"):
 
         # Set the ngram number
         self._n = n
@@ -90,6 +90,7 @@ class ASTIDE():
         print(f"[ASTIDE] astide.seen_syscalls in training: {self._seen_training_syscalls}")
         print(f"[ASTIDE] astide.seen_ngrams in training  : {self._seen_training_ngrams}")
         print(f"[ASTIDE] astide.train_set                : {len(self._normal_database)}")
+        self.to_json_file(self._model_file)
         
         dt = self._early_stopping_last_seen_ts - self._early_stopping_last_modification_ts
         print(f"[ASTIDE] time since last model change: {dt} seconds ")
@@ -97,7 +98,7 @@ class ASTIDE():
             # training done...
             print("[ASTIDE] training done -> switch to detection")
             self.mode = "detection"
-            self.to_json_file(self._model_file)
+            
 
     # Helper function to determine if a given ngram is a mismatch
     def _is_mismatch(self, ngram: tuple):
