@@ -44,7 +44,7 @@
    - install python dependencies: `sudo pip install -r requirements.txt`
       - run the ids script: `sudo python3 ids.py [training|detection] path_to_model hostname port fuzzino_endpoint`
         - hostname and port to listen on for incoming scap file of the agent
-        - example: `sudo python3 ids.py training ./model.dat 127.0.0.1 80 http://127.0.0.1:8081/fz/scores`
+        - example: `sudo python3 ids.py training ./models/model.json 127.0.0.1 80 http://127.0.0.1:8081/fz/scores`
 
 # Rest Enpoints and Communication Information
 

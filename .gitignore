@@ -1,3 +1,3 @@
 __pycache__/
 *.scap*
-ids/models/
+ids/models/*.json

@@ -1,0 +1,1 @@
+Added so that git creates this folder automatically. This is where the learned models are to be stored.
