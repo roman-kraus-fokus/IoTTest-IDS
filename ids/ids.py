@@ -96,6 +96,7 @@ def stop_generation():
 
     if request.json["generation_name"] and request.json["generation_name"] == current_generation:
         evaluate_generation()
+        current_generation = None
         return f"generation ended and data send", 200
     else:  
         return f"no name for generation given or the given generation wasnt active", 400
@@ -141,8 +142,8 @@ def evaluate_generation():
     try:
         response = requests.post(fuzzino_endpoint, json=result_data)
         response.raise_for_status()
-        print("[IDS] fuzzino response code: " + response.status_code)
-        print("[IDS] fuzzino response text: " + response.text)
+        print(f"[IDS] fuzzino response code: {response.status_code}")
+        print(f"[IDS] fuzzino response text: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"[IDS] error: {e}")
 
