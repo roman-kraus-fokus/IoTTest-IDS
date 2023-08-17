@@ -22,6 +22,8 @@ current_generation = None
 fuzzino_endpoint = None
 mode = None
 path_to_model_file = None
+algorithm = None
+features = None
 
 
 # for uploading the files to the ids
@@ -108,10 +110,12 @@ def run_observer():
     # ParserFileHandler
     global mode
     global path_to_model_file
+    global algorithm
+    global features
 
     path = os.getcwd() + "/uploads/"
     print(f"[IDS] observing files in: {path}")
-    event_handler = ParserFileHandler(testcases, mode, path_to_model_file)
+    event_handler = ParserFileHandler(testcases, mode, path_to_model_file, algorithm, features)
     observer.schedule(event_handler, path, recursive=False)
     observer.start()
     
@@ -147,6 +151,8 @@ def evaluate_generation():
     except requests.exceptions.RequestException as e:
         print(f"[IDS] error: {e}")
 
+    # finally create a new testcase manager
+    testcases = TestcaseManager()
 
 ###########################################################################
 # START
@@ -164,19 +170,29 @@ if __name__ == "__main__":
     # fifth argument: fuzzino-endpoint
 
     # check for arguments
-    needed_arguments = "needed arguments: [training|detection] path_to_model_file hostname port fuzzino_endpoint"
-    if len(sys.argv) == 6:
+    needed_arguments = "needed arguments: [training|detection] path_to_model_file algorithm features hostname port fuzzino_endpoint"
+    algorithm_list = ["astide", "fstide"]
+    features_list = ["name", "name_result"]
+    if len(sys.argv) == 8:
         mode = sys.argv[1]
         if mode != "training" and mode != "detection":
             print("[IDS] mode has to be \"training\" or \"detection\"")
             print(needed_arguments)
-            exit()
+            exit()        
         path_to_model_file = sys.argv[2]
-        hostname_to_listen = sys.argv[3]
-        port_to_listen = sys.argv[4]        
-        fuzzino_endpoint = sys.argv[5]
+        algorithm = sys.argv[3]
+        if algorithm.lower() not in algorithm_list:
+            print(f"[IDS] algorithm has to be from the following list: {algorithm_list}")
+        features = sys.argv[4]
+        if features not in features_list:
+            print(f"[IDS] features has to be from the following list: {features_list}")
+        hostname_to_listen = sys.argv[5]
+        port_to_listen = sys.argv[6]        
+        fuzzino_endpoint = sys.argv[7]
     else:
         print(needed_arguments)
+        print(f"algorithm options: {algorithm_list}")
+        print(f"feature options: {features_list}")
         exit()
 
     # run the file observer part

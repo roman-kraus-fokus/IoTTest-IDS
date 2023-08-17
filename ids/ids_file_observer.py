@@ -6,12 +6,18 @@ from watchdog.events import FileSystemEventHandler
 
 from syscall import Syscall
 from astide import ASTIDE
+from fstide import FSTIDE
+from stats import Stats
 
 # Handles file observer and starts parsing the files
 class ParserFileHandler(FileSystemEventHandler):
-    def __init__(self, testcase_manager, mode, path_to_model_file):        
+    def __init__(self, testcase_manager, mode, path_to_model_file, algorithm, features):        
         self._files = set()
-        self._stide = ASTIDE(mode=mode, model_file=path_to_model_file)
+        if algorithm.lower() == "astide":
+            self._stide = ASTIDE(mode=mode, model_file=path_to_model_file)
+        if algorithm.lower() == "fstide":
+            self._stide = FSTIDE(mode=mode, model_file=path_to_model_file, syscall_mapper=features)
+
         self._testcase_manager = testcase_manager
 
     def on_modified(self, event):        
@@ -43,7 +49,7 @@ class ParserFileHandler(FileSystemEventHandler):
             print(f"[FileHandler] Error trying do delete: {file_path} : {e.strerror}")
 
     def _parse_sysdig_output(self, file_path):
-        max_score_in_file = 0
+        stats = Stats()
         current_syscall = None
         with subprocess.Popen(["sysdig", "-r", file_path, "-p", "%evt.rawtime %proc.name %thread.tid %evt.dir %syscall.type %evt.args"], stdout=subprocess.PIPE) as proc:
             for line in proc.stdout:
@@ -56,12 +62,12 @@ class ParserFileHandler(FileSystemEventHandler):
                 else:
                     current_score = self._stide.get_score(current_syscall)
                     if current_score is not None:
-                        max_score_in_file = max(current_score, max_score_in_file)
+                        stats.add_value(current_score)
                         testcase = self._testcase_manager.get_current_testcase(current_syscall.timestamp_unix_in_ns()) 
                         if testcase is not None:
                             testcase.add_score(current_score)
         if self._stide.mode == "training":
-            self._stide.fit()            
-        if self._stide.mode == "detection":
-            print(f"[FileHandler] max anomaly score for the last file: {max_score_in_file}")
-        print(f"[FileHandler] current testcase: {self._testcase_manager.get_current_testcase(current_syscall.timestamp_unix_in_ns())}")
+            self._stide.fit()
+        elif self._stide.mode == "detection":
+            print(f"[FileHandler] min/avg/max anomaly scores for the last file: {stats.get_min()}/{stats.get_average()}/{stats.get_max()}")
+            print(f"[FileHandler] current testcase: {self._testcase_manager.get_current_testcase(current_syscall.timestamp_unix_in_ns())}")

@@ -90,9 +90,9 @@ if __name__ == "__main__":
     # -w trace.scap -> filename for the files
     # -W 6 -> automatic file rotation, max 6 files
     # old variant
-    # sysdig_process = subprocess.Popen(["sysdig", "-G", "10", "-w", "recordings/trace.scap", f"container.name={target_container}"])
+    sysdig_process = subprocess.Popen(["sysdig", "-G", "10", "-w", "recordings/trace.scap", f"container.name={target_container}"])
     # new for default model generation only records mosquitto processes
-    sysdig_process = subprocess.Popen(["sysdig", "-G", "10", "-w", "recordings/trace.scap", f"(container.name={target_container} and proc.name=mosquitto)"])
+    # sysdig_process = subprocess.Popen(["sysdig", "-G", "10", "-w", "recordings/trace.scap", f"(container.name={target_container} and proc.name=mosquitto)"])
 
     try:
         print("agent is recording system calls and sending files to the given endpoint...")
