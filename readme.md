@@ -42,9 +42,12 @@
    - install sysdig into the ids machine, see: https://github.com/draios/sysdig/wiki/How-to-Install-Sysdig-for-Linux
    - move to ids directory
    - install python dependencies: `sudo pip install -r requirements.txt`
-      - run the ids script: `sudo python3 ids.py [training|detection] path_to_model hostname port fuzzino_endpoint`
+      - run the ids script: `sudo python3 ids.py [training|detection] path_to_model algorithm features hostname port fuzzino_endpoint`
         - hostname and port to listen on for incoming scap file of the agent
-        - example: `sudo python3 ids.py detection ./models/mosquitto_default.json 127.0.0.1 80 http://127.0.0.1:8081/fz/scores`
+        - example:
+          - `sudo python3 ids.py detection ./models/mosquitto_default.json astide name 127.0.0.1 80 http://127.0.0.1:8081/fz/scores`
+          - `sudo python3 ids.py detection ./models/mosquitto_freq_stide_n9_w500.json fstide name 127.0.0.1 80 http://127.0.0.1:8081/fz/scores`
+          - `sudo python3 ids.py detection ./models/mosquitto_freq_stide_r_n9_w500.json fstide name_result 127.0.0.1 80 http://127.0.0.1:8081/fz/scores`
 
 # Rest Enpoints and Communication Information
 
