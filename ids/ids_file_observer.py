@@ -70,4 +70,5 @@ class ParserFileHandler(FileSystemEventHandler):
             self._stide.fit()
         elif self._stide.mode == "detection":
             print(f"[FileHandler] min/avg/max anomaly scores for the last file: {stats.get_min()}/{stats.get_average()}/{stats.get_max()}")
-            print(f"[FileHandler] current testcase: {self._testcase_manager.get_current_testcase(current_syscall.timestamp_unix_in_ns())}")
+            if current_syscall:
+                print(f"[FileHandler] current testcase: {self._testcase_manager.get_current_testcase(current_syscall.timestamp_unix_in_ns())}")

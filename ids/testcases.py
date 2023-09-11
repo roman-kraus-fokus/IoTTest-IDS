@@ -21,6 +21,9 @@ class Testcase:
 
 class TestcaseManager:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self._testcases = {}
         self._last_inserted_testcase = None
         self._current_testcase = None

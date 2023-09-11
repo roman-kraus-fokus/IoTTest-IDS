@@ -77,8 +77,13 @@ if __name__ == "__main__":
         print("need arguments: container_name endpoint")
         exit()
 
-    # AgentFileHandler
+    
     path = os.getcwd() + "/recordings/"
+    # first check wether the directory already exists, if not create it
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    # AgentFileHandler
     print(f"observing files in: {path}")
     event_handler = AgentFileHandler(endpoint=endpoint)
     observer = Observer()

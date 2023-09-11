@@ -152,7 +152,7 @@ def evaluate_generation():
         print(f"[IDS] error: {e}")
 
     # finally create a new testcase manager
-    testcases = TestcaseManager()
+    testcases.reset()
 
 ###########################################################################
 # START
@@ -169,8 +169,8 @@ if __name__ == "__main__":
     # fourth argument: port to listen or None
     # fifth argument: fuzzino-endpoint
 
-    # check for arguments
-    needed_arguments = "needed arguments: [training|detection] path_to_model_file algorithm features hostname port fuzzino_endpoint"
+    # check for arguments    
+    needed_arguments = "needed arguments: [training|detection] path_to_model algorithm features hostname port fuzzino_endpoint"
     algorithm_list = ["astide", "fstide"]
     features_list = ["name", "name_result"]
     if len(sys.argv) == 8:
