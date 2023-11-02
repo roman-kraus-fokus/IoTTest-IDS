@@ -48,6 +48,12 @@ class SafeDict:
         with self._lock:
             return len(self._dict)        
 
+    def values(self):
+        with self._lock:
+            # Return a copy of the values to ensure thread safety
+            # attention: this is in form of a list, but it shouldnt matter in most cases
+            return list(self._dict.values())
+
 
 class TestcaseManager:
     def __init__(self):
