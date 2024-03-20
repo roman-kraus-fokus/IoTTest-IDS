@@ -2,6 +2,8 @@ import threading
 import sys
 import os
 import requests
+import time
+from datetime import datetime
 
 from flask import Flask, request
 from werkzeug.utils import secure_filename
@@ -77,14 +79,18 @@ def start_generation():
     # "generation_name": "g-001",
     # }
     global current_generation
-
+    current_time = get_current_timestamp()
+    print(f"processing '/ids/start_generation' {request.json} at {get_current_timestamp()}")
     if current_generation is None:
         current_generation = request.json["generation_name"]
         if current_generation:
+            print(f"[/ids/start_generation:{current_time}] generation \"{current_generation}\" accepted")
             return f"generation \"{current_generation}\" accepted", 200
         else:  
+            print(f"[/ids/start_generation:{current_time}] no name for generation given")
             return f"no name for generation given", 400
     else:
+        print(f"[/ids/start_generation:{current_time}] generation \"{current_generation}\" already running")
         return f"generation \"{current_generation}\" already running", 400
     
 
@@ -95,12 +101,16 @@ def stop_generation():
     # "generation_name": "g-001",
     # }
     global current_generation
-
+    current_time = get_current_timestamp()
+    print(f"processing '/ids/stop_generation' {request.json} at {get_current_timestamp()}")
     if request.json["generation_name"] and request.json["generation_name"] == current_generation:
-        evaluate_generation()
-        current_generation = None
-        return f"generation ended and data send", 200
-    else:  
+        # We start the evaluation in a separate thread so that this request can be immediately closed
+        evaluation_thread = threading.Thread(target=evaluate_generation)
+        evaluation_thread.start()
+        print(f"[/ids/stop_generation:{current_time}] generation ended and data sending initated")
+        return f"generation ended and data sending initated", 200
+    else:
+        print(f"[/ids/stop_generation:{current_time}] no name for generation given or the given generation wasnt active")
         return f"no name for generation given or the given generation wasnt active", 400
 
 
@@ -118,6 +128,10 @@ def run_observer():
     event_handler = ParserFileHandler(testcases, mode, path_to_model_file, algorithm, features)
     observer.schedule(event_handler, path, recursive=False)
     observer.start()
+
+def get_current_timestamp():
+    """Returns the current system timestamp in a human-readable format"""
+    return datetime.today().strftime('%Y-%m-%d %H:%M:%S')
     
 
 def evaluate_generation():
@@ -129,20 +143,40 @@ def evaluate_generation():
     global testcases
     global fuzzino_endpoint
 
+    # We wait until all testcases have an IDS score or cannot receive any IDS score any more
+    while not testcases.is_complete():
+        print("[IDS] IDS values not complete yet...", flush=True)
+        time.sleep(10)
+
     # evaluate the current generation
     result_data = {}
     result_data["generation"] = current_generation
     result_data["testcases"] = []
     for testcase in testcases._testcases.values():
         # evaluate the testcase
-        result_data["testcases"].append({"testcase":testcase._name, "anomaly-score-max":testcase._max_score})
+        if not testcase.has_score():
+            # Sometimes it can happen that no syscall was monitored which was observed during the time of the testcase
+            # In these situations a default score is sent.
+            print(f"[IDS] testcase {testcase} is sent without a real monitored score.")
+        result_data["testcases"].append({
+            "testcase":testcase._name, 
+            "anomaly-score-max":testcase._max_score, "anomaly-score-avg":testcase.get_avg_value(), 
+            "is-real-score": testcase.has_score()})
     # send the results to the server
     print(f"[IDS] sending results to {fuzzino_endpoint}")
     print(f"[IDS] data send: ")
     print("[IDS] ---------------------")
     print(f"[IDS] {result_data}")
     print("[IDS] ---------------------")
+
+    # We reset the state to prevent a race condition where Fuzzino could start a new generation even though
+    # we have not yet cleared the state of the previous one
+    # For this, we first create a new testcase manager
+    testcases.reset()
+    # Furthermore, we reset the current_generation as we completely processed it (i.e., sent its IDS values to Fuzzino)
+    current_generation = None
     
+    # Now we send the response data to Fuzzino
     try:
         response = requests.post(fuzzino_endpoint, json=result_data)
         response.raise_for_status()
@@ -150,9 +184,6 @@ def evaluate_generation():
         print(f"[IDS] fuzzino response text: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"[IDS] error: {e}")
-
-    # finally create a new testcase manager
-    testcases.reset()
 
 ###########################################################################
 # START
