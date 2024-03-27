@@ -97,6 +97,8 @@ class TestcaseManager:
 
     def get_matching_testcases(self, timestamp):
         """Returns all Testcases of this TestcaseManager whose time window includes the given timestamp"""
+        # TODO: If I am not mistaken, then there can be at max one test case which matches a given time stamp. So, the list might not be necessary.
+        #  However, the iteration over all testcases here still makes sense to set testcases as 'finished' for which no more IDS updates are expected.
         test_case_list = []
         for testcase in self._testcases.iterate_values():
                 # Making sure that the testcases starts before or at the given timestamp
